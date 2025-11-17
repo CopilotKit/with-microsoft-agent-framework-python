@@ -30,7 +30,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "agent-framework-ag-ui", specifier = ">=1.0.0b251111.post1" },
+    { name = "agent-framework-ag-ui", specifier = ">=1.0.0b251112.post1" },
     { name = "python-dotenv" },
     { name = "uvicorn", specifier = ">=0.37.0" },
 ]
