@@ -29,13 +29,13 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "agent-framework-ag-ui", specifier = ">=1.0.0b251112.post1" },
+    { name = "agent-framework-ag-ui", specifier = ">=1.0.0b251117" },
     { name = "python-dotenv" },
 ]
 
 [[package]]
 name = "agent-framework-ag-ui"
-version = "1.0.0b251114"
+version = "1.0.0b251117"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ag-ui-protocol" },
@@ -43,9 +43,9 @@ dependencies = [
     { name = "fastapi" },
     { name = "uvicorn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/18/b3/53096abee5b47356973ae51d98704f9d8df885694fb2d9b72aebdd931222/agent_framework_ag_ui-1.0.0b251114.tar.gz", hash = "sha256:427a8864b1343b9559aec04b2ef4bb52acf019956cdd4286db107ce44a51295e", size = 82323, upload-time = "2025-11-15T01:01:25.328Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/37/4a/f8076d0d02af361e016f1fbbc6d2b33fd138adea85264f76a67238798577/agent_framework_ag_ui-1.0.0b251117.tar.gz", hash = "sha256:9316d5958c525553d9256ef15123d09ba58583fc6c6436d7e1ec1c26cbaaa309", size = 83747, upload-time = "2025-11-18T02:51:42.761Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/87/ea/4eae18b18472eedbe89e3ecd1e7a6f8f665033570f57e7a561d34a2f0f4a/agent_framework_ag_ui-1.0.0b251114-py3-none-any.whl", hash = "sha256:e3e99979ba822cabf4e575b62e80de3ac84ca8a5540362fab2f90d9b5df9e9de", size = 61631, upload-time = "2025-11-15T01:01:24.297Z" },
+    { url = "https://files.pythonhosted.org/packages/f1/4e/b9383fbb29a27056f83ec683b6de124909064c8367a224c27f09f4d37555/agent_framework_ag_ui-1.0.0b251117-py3-none-any.whl", hash = "sha256:0bb0578c9b9a1b4da12335c67931cbf7eaa55c79e559e2fa5138a9339e9ead77", size = 63134, upload-time = "2025-11-18T02:51:41.179Z" },
 ]
 
 [[package]]

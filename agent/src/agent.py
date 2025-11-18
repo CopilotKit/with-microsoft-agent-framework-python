@@ -3,8 +3,7 @@ from __future__ import annotations
 from textwrap import dedent
 from typing import Annotated
 
-from agent_framework import ChatAgent, ai_function
-from agent_framework._clients import ChatClientProtocol
+from agent_framework import ChatAgent, ChatClientProtocol, ai_function
 from agent_framework_ag_ui import AgentFrameworkAgent
 from pydantic import Field
 
@@ -83,9 +82,11 @@ def create_agent(chat_client: ChatClientProtocol) -> AgentFrameworkAgent:
             - The current list of proverbs is provided in the conversation context.
             - When you add, remove, or reorder proverbs, call `update_proverbs` with the full list.
               Never send partial updates—always include every proverb that should exist.
-            - CRITICAL: When asked to "add" a proverb, add EXACTLY ONE new proverb and preserve ordering.
-              Example: If list is ["A", "B"] and user asks to add, result must be ["A", "B", "C"]. Never add more than one
-              unless the user explicitly asks for multiple additions.
+            - CRITICAL: When asked to "add" a proverb, you must:
+              1. First, identify ALL existing proverbs from the conversation history
+              2. Create EXACTLY ONE new proverb (never more than one unless explicitly requested)
+              3. Call update_proverbs with: [all existing proverbs] + [the one new proverb]
+              Example: Current: ["A", "B"] -> After adding: ["A", "B", "C"] (NOT ["A", "B", "C", "D", "E"])
             - When asked to "remove" a proverb, remove exactly ONE item unless user specifies otherwise.
 
             Tool usage rules:
@@ -116,5 +117,5 @@ def create_agent(chat_client: ChatClientProtocol) -> AgentFrameworkAgent:
         description="Manages proverbs, weather snippets, and human-in-the-loop moon launches.",
         state_schema=STATE_SCHEMA,
         predict_state_config=PREDICT_STATE_CONFIG,
-        require_confirmation=True,
+        require_confirmation=False,  # Allow immediate state updates with follow-up messages
     )
