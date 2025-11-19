@@ -1,28 +1,23 @@
 "use client";
 
-import { useCoAgent } from "@copilotkit/react-core";
+import { useCopilotReadable } from "@copilotkit/react-core";
 import { CopilotSidebar } from "@copilotkit/react-ui";
+import { useState } from "react";
 
 export default function CopilotKitPage() {
-  type AgentState = {
-    language: "english" | "spanish";
-  };
-
-  const { state, setState } = useCoAgent<AgentState>({
-    name: "sample_agent",
-    initialState: { language: "spanish" },
+  const [colleagues] = useState([
+    { id: 1, name: "John Doe", role: "Developer" },
+    { id: 2, name: "Jane Smith", role: "Designer" },
+    { id: 3, name: "Bob Wilson", role: "Product Manager" },
+  ]);
+  useCopilotReadable({
+    description: "The current user's colleagues",
+    value: colleagues,
   });
 
   return (
     <main className="p-6">
-      <div className="mb-2 text-lg">Language: {state.language}</div>
-      <button
-        type="button"
-        onClick={toggleLanguage}
-        className="px-3 py-2 mb-4 rounded bg-blue-600 text-white"
-      >
-        Toggle Language
-      </button>
+      <h1 className="text-xl mb-4">Your main content</h1>
       <CopilotSidebar
         instructions={
           "You are assisting the user as best as you can. Answer in the best way possible given the data you have."
