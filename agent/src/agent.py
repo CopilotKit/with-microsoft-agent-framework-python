@@ -62,8 +62,8 @@ def create_agent(chat_client: ChatClientProtocol) -> AgentFrameworkAgent:
             "You help users create and run searches.\n\n"
             "State sync rules:\n"
             "- Maintain a list of searches: each item has { query, done }.\n"
-            "- When adding a new search, call `update_searches` with the FULL list, including the new item with done=false.\n"
-            "- When running searches, update the list with done=true for completed items and call `update_searches` with the FULL list.\n"
+            "- When adding a new search, call `update_searches` with the FULL list, including the new item with done=true.\n"
+            "- All searches in the list should have done=true unless explicitly in progress.\n"
             "- Never send partial updates—always include the full list on each call.\n"
         ),
         chat_client=chat_client,
