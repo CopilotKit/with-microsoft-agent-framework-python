@@ -13,38 +13,18 @@ def create_agent(chat_client: ChatClientProtocol) -> AgentFrameworkAgent:
     """
     class ContextInjectionMiddleware(ChatMiddleware):
         async def process(self, context: ChatContext, next) -> None:  # type: ignore[override]
-            # Attempt to extract AG-UI forwarded context from additional chat options
+            # Extract AG-UI forwarded context (array of [description, value] pairs)
             additional = getattr(getattr(context, "chat_options", None), "additional_properties", {}) or {}
             agui_ctx: Any = additional.get("ag_ui_context")
 
-            # Format context into a readable system instruction
-            if agui_ctx:
-                lines: list[str] = ["The following context from the user's application is available:"]
-
-                def _iter_items(obj: Any) -> Iterable[tuple[str, Any]]:
-                    # Supports: dict-like, list of tuples, list of dicts with description/value
-                    if isinstance(obj, dict):
-                        return obj.items()
-                    if isinstance(obj, list):
-                        out: list[tuple[str, Any]] = []
-                        for item in obj:
-                            if isinstance(item, tuple) and len(item) == 2:
-                                out.append((str(item[0]), item[1]))
-                            elif isinstance(item, dict):
-                                # Heuristic mapping of common shapes
-                                if "description" in item and "value" in item:
-                                    out.append((str(item["description"]), item["value"]))
-                                elif "key" in item and "value" in item:
-                                    out.append((str(item["key"]), item["value"]))
-                        return out
-                    return []
-
-                for key, value in _iter_items(agui_ctx):
-                    lines.append(f"- {key}: {value}")
-
-                system_text = "\n".join(lines)
-                # Prepend a minimal system message; most chat clients accept dict shape
-                context.messages = [{"role": "system", "content": system_text}, *context.messages]
+            if isinstance(agui_ctx, list) and len(agui_ctx) > 0:
+                try:
+                    entries = [f"- {k}: {v}" for k, v in agui_ctx]  # expect list of [key, value]
+                    system_text = "The following context from the user's application is available:\n" + "\n".join(entries)
+                    context.messages = [{"role": "system", "content": system_text}, *context.messages]
+                except Exception:
+                    # If shape is unexpected, skip injection silently
+                    pass
 
             await next(context)
 
