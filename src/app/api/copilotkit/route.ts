@@ -15,7 +15,7 @@ const serviceAdapter = new ExperimentalEmptyAdapter();
 const runtime = new CopilotRuntime({
   agents: {
     // Our FastAPI endpoint URL
-    "my_agent": new HttpAgent({url: "http://localhost:8000/"}),
+    "sample_agent": new HttpAgent({url: "http://localhost:8000/"}),
   }   
 });
  

@@ -1,121 +1,92 @@
 from __future__ import annotations
 
-from textwrap import dedent
-from typing import Annotated
+from typing import Annotated, TypedDict, List, Dict
 
 from agent_framework import ChatAgent, ChatClientProtocol, ai_function
 from agent_framework_ag_ui import AgentFrameworkAgent
 from pydantic import Field
 
-STATE_SCHEMA: dict[str, object] = {
-    "proverbs": {
+
+class SearchItem(TypedDict):
+    query: str
+    done: bool
+
+
+# Define the state schema for AG-UI to validate and forward to the frontend
+STATE_SCHEMA: Dict[str, object] = {
+    "searches": {
         "type": "array",
-        "items": {"type": "string"},
-        "description": "Ordered list of the user's saved proverbs.",
+        "items": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "done": {"type": "boolean"},
+            },
+            "required": ["query", "done"],
+            "additionalProperties": False,
+        },
+        "description": "List of searches and whether each is done.",
     }
 }
 
-PREDICT_STATE_CONFIG: dict[str, dict[str, str]] = {
-    "proverbs": {
-        "tool": "update_proverbs",
-        "tool_argument": "proverbs",
+# Configure how the agent updates state. The agent will call the `update_searches`
+# tool with the FULL list of searches to set the current state.
+PREDICT_STATE_CONFIG: Dict[str, Dict[str, str]] = {
+    "searches": {
+        "tool": "update_searches",
+        "tool_argument": "searches",
     }
 }
 
 
 @ai_function(
-    name="update_proverbs",
+    name="update_searches",
     description=(
-        "Replace the entire list of proverbs with the provided values. "
-        "Always include every proverb you want to keep."
+        "Replace the entire list of searches with the provided values. "
+        "Always include the full list you want to keep. "
+        "Each search should include: { query: string, done: boolean }."
     ),
 )
-def update_proverbs(
-    proverbs: Annotated[
-        list[str],
+def update_searches(
+    searches: Annotated[
+        List[SearchItem],
         Field(
             description=(
-                "The complete source of truth for the user's proverbs. "
+                "The complete source of truth for the user's searches. "
                 "Maintain ordering and include the full list on each call."
             )
         ),
     ],
 ) -> str:
-    """Persist the provided set of proverbs."""
-    return f"Proverbs updated. Tracking {len(proverbs)} item(s)."
-
-
-@ai_function(
-    name="get_weather",
-    description="Share a quick weather update for a location. Use this to render the frontend weather card.",
-)
-def get_weather(
-    location: Annotated[str, Field(description="The city or region to describe. Use fully spelled out names.")],
-) -> str:
-    """Return a short natural language weather summary."""
-    normalized = location.strip().title() or "the requested location"
-    return (
-        f"The weather in {normalized} is mild with a light breeze. "
-        "Skies are mostly clear—perfect for planning something fun."
-    )
-
-
-@ai_function(
-    name="go_to_moon",
-    description="Request a playful human-in-the-loop confirmation before launching a mission to the moon.",
-    approval_mode="always_require",
-)
-def go_to_moon() -> str:
-    """Request human approval before continuing."""
-    return "Mission control requested. Awaiting human approval for the lunar launch."
+    return f"Searches updated. Tracking {len(searches)} item(s)."
 
 
 def create_agent(chat_client: ChatClientProtocol) -> AgentFrameworkAgent:
-    """Instantiate the CopilotKit demo agent backed by Microsoft Agent Framework."""
+    """
+    Agent that maintains and streams a list of searches to the UI.
+    The LLM is instructed to call `update_searches` whenever it adds or completes searches.
+    """
     base_agent = ChatAgent(
-        name="proverbs_agent",
-        instructions=dedent(
-            """
-            You help users brainstorm, organize, and refine proverbs while coordinating UI updates.
-
-            State sync:
-            - The current list of proverbs is provided in the conversation context.
-            - When you add, remove, or reorder proverbs, call `update_proverbs` with the full list.
-              Never send partial updates—always include every proverb that should exist.
-            - CRITICAL: When asked to "add" a proverb, you must:
-              1. First, identify ALL existing proverbs from the conversation history
-              2. Create EXACTLY ONE new proverb (never more than one unless explicitly requested)
-              3. Call update_proverbs with: [all existing proverbs] + [the one new proverb]
-              Example: Current: ["A", "B"] -> After adding: ["A", "B", "C"] (NOT ["A", "B", "C", "D", "E"])
-            - When asked to "remove" a proverb, remove exactly ONE item unless user specifies otherwise.
-
-            Tool usage rules:
-            - When user asks to go to the moon, you MUST call the `go_to_moon` tool immediately. Do NOT ask for approval
-              yourself—the tool's approval workflow and the client UI will handle it.
-
-            Frontend integrations:
-            - `get_weather` renders a weather card in the UI. Only call this tool when the user explicitly
-              asks for weather. Do NOT call it after unrelated tasks or approvals.
-            - `go_to_moon` requires explicit user approval before you proceed. Only use it when a
-              user asks to launch or travel to the moon. Always call the tool instead of asking manually.
-
-            Conversation tips:
-            - Reference the latest proverb list before suggesting changes.
-            - Keep responses concise and friendly unless the user requests otherwise.
-            - After you finish executing tools for the user's request, provide a brief, final assistant
-              message summarizing exactly what changed. Do NOT call additional tools or switch topics
-              after that summary unless the user asks. ALWAYS send this conversational summary so the message persists.
-            """.strip()
+        name="search_agent",
+        instructions=(
+            "You help users create and run searches.\n\n"
+            "State sync rules:\n"
+            "- Maintain a list of searches: each item has { query, done }.\n"
+            "- When adding a new search, call `update_searches` with the FULL list, including the new item with done=false.\n"
+            "- When running searches, update the list with done=true for completed items and call `update_searches` with the FULL list.\n"
+            "- Never send partial updates—always include the full list on each call.\n"
         ),
         chat_client=chat_client,
-        tools=[update_proverbs, get_weather, go_to_moon],
+        tools=[update_searches],
     )
 
     return AgentFrameworkAgent(
         agent=base_agent,
         name="CopilotKitMicrosoftAgentFrameworkAgent",
-        description="Manages proverbs, weather snippets, and human-in-the-loop moon launches.",
+        description="Maintains a list of searches and streams state to the UI.",
         state_schema=STATE_SCHEMA,
         predict_state_config=PREDICT_STATE_CONFIG,
-        require_confirmation=False,  # Allow immediate state updates with follow-up messages
+        require_confirmation=False,
     )
+
+
