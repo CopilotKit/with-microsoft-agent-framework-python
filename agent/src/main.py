@@ -9,7 +9,7 @@ from agent_framework.azure import AzureOpenAIChatClient
 from agent_framework.openai import OpenAIChatClient
 from agent_framework_ag_ui import add_agent_framework_fastapi_endpoint
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from agent import create_agent
@@ -54,6 +54,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+REQUIRED_BEARER_TOKEN = os.getenv("AUTH_BEARER_TOKEN")
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    # Protect the AG-UI endpoint if a token is configured
+    if REQUIRED_BEARER_TOKEN and request.url.path == "/":
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
+        token = auth_header.split(" ", 1)[1].strip()
+        if token != REQUIRED_BEARER_TOKEN:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    return await call_next(request)
 
 add_agent_framework_fastapi_endpoint(
     app=app,
