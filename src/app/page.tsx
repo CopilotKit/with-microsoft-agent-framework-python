@@ -1,24 +1,19 @@
 "use client";
 
-import { useCoAgent } from "@copilotkit/react-core";
+import { useCopilotReadable } from "@copilotkit/react-core";
 import { CopilotSidebar } from "@copilotkit/react-ui";
+import { useState } from "react";
 
 export default function CopilotKitPage() {
-  type Colleague = { id: number; name: string; role: string };
-  type AgentState = {
-    colleagues: Colleague[];
-  };
-
-  // Make the agent explicitly aware of app context by storing it in agent state.
-  useCoAgent<AgentState>({
-    name: "sample_agent",
-    initialState: {
-      colleagues: [
-        { id: 1, name: "John Doe", role: "Developer" },
-        { id: 2, name: "Jane Smith", role: "Designer" },
-        { id: 3, name: "Bob Wilson", role: "Product Manager" },
-      ],
-    },
+  const [colleagues] = useState([
+    { id: 1, name: "John Doe", role: "Developer" },
+    { id: 2, name: "Jane Smith", role: "Designer" },
+    { id: 3, name: "Bob Wilson", role: "Product Manager" },
+  ]);
+  // Register app context as a Copilot readable so it is forwarded to the agent
+  useCopilotReadable({
+    description: "The current user's colleagues",
+    value: colleagues,
   });
 
   return (
