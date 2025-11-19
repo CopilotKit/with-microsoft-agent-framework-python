@@ -1,13 +1,11 @@
-from __future__ import annotations
-
-from typing import Annotated, TypedDict, List, Dict
+from typing import Annotated, Dict
 
 from agent_framework import ChatAgent, ChatClientProtocol, ai_function
 from agent_framework_ag_ui import AgentFrameworkAgent
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 
-class SearchItem(TypedDict):
+class SearchItem(BaseModel):
     query: str
     done: bool
 
@@ -48,15 +46,7 @@ PREDICT_STATE_CONFIG: Dict[str, Dict[str, str]] = {
     ),
 )
 def update_searches(
-    searches: Annotated[
-        List[SearchItem],
-        Field(
-            description=(
-                "The complete source of truth for the user's searches. "
-                "Maintain ordering and include the full list on each call."
-            )
-        ),
-    ],
+    searches: Annotated[list[SearchItem], Field(description=("The complete source of truth for the user's searches. Maintain ordering and include the full list on each call."))],
 ) -> str:
     return f"Searches updated. Tracking {len(searches)} item(s)."
 
