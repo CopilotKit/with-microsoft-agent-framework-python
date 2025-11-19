@@ -1,29 +1,29 @@
 "use client";
 
-import { useCopilotAction } from "@copilotkit/react-core";
+import { useFrontendTool } from "@copilotkit/react-core";
 import { CopilotChat } from "@copilotkit/react-ui";
 
 export default function CopilotKitPage() {
-  useCopilotAction({
-    name: "get_weather",
-    available: "disabled", // Render-only; don't allow invoking from UI
+  useFrontendTool({
+    name: "sayHello",
+    description: "Say hello to the user",
     parameters: [
       {
-        name: "location",
+        name: "name",
         type: "string",
-        description: "The location to get weather for",
-        required: false,
+        description: "The name of the user to say hello to",
+        required: true,
       },
     ],
-    render: ({ status, args }) => {
-      const location =
-        typeof args.location === "string" && args.location.length > 0
-          ? args.location
-          : "the requested location";
+    handler: ({ name }: { name: string }): { currentURLPath: string; userName: string } => {
+      return { currentURLPath: window.location.href, userName: name };
+    },
+    render: ({ args }: { args: { name?: string } }) => {
       return (
-        <p className="text-gray-500 mt-2">
-          {status !== "complete" ? "Calling weather API..." : `Called the weather API for ${location}.`}
-        </p>
+        <div>
+          <h1>Hello, {args.name}!</h1>
+          <h1>You&apos;re currently on {window.location.href}</h1>
+        </div>
       );
     },
   });
