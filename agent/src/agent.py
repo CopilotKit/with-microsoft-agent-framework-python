@@ -13,14 +13,20 @@ def create_agent(chat_client: ChatClientProtocol) -> AgentFrameworkAgent:
     """
     class ContextInjectionMiddleware(ChatMiddleware):
         async def process(self, context: ChatContext, next) -> None:  # type: ignore[override]
-            # Extract AG-UI forwarded context (array of [description, value] pairs)
+            # Extract AG-UI forwarded state: we expect {"colleagues": [{id,name,role}, ...]}
             additional = getattr(getattr(context, "chat_options", None), "additional_properties", {}) or {}
-            agui_ctx: Any = additional.get("ag_ui_context")
+            agui_state: Any = additional.get("ag_ui_state")
 
-            if isinstance(agui_ctx, list) and len(agui_ctx) > 0:
+            if isinstance(agui_state, dict) and isinstance(agui_state.get("colleagues"), list):
                 try:
-                    entries = [f"- {k}: {v}" for k, v in agui_ctx]  # expect list of [key, value]
-                    system_text = "The following context from the user's application is available:\n" + "\n".join(entries)
+                    colleagues = agui_state["colleagues"]
+                    lines = ["The user's colleagues are:"]
+                    for c in colleagues:
+                        name = c.get("name")
+                        role = c.get("role")
+                        if name and role:
+                            lines.append(f"- {name} ({role})")
+                    system_text = "\n".join(lines)
                     context.messages = [{"role": "system", "content": system_text}, *context.messages]
                 except Exception:
                     # If shape is unexpected, skip injection silently
