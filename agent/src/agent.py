@@ -1,57 +1,55 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Dict
 
-from agent_framework import ChatAgent, ChatClientProtocol, ChatMiddleware, ChatContext
-from agent_framework.ag_ui import AgentFrameworkAgent
+from agent_framework import ChatAgent, ChatClientProtocol, ai_function
+from agent_framework_ag_ui import AgentFrameworkAgent
+from pydantic import Field
 
 
 def create_agent(chat_client: ChatClientProtocol) -> AgentFrameworkAgent:
     """
-    Agent that consumes app context forwarded by AG-UI.
-    A tiny middleware injects a single system message with the colleagues list.
+    Agent with predictive state updates for observed steps.
     """
-    class ContextInjectionMiddleware(ChatMiddleware):
-        async def process(self, context: ChatContext, next) -> None:  # type: ignore[override]
-            # Extract AG-UI forwarded context as [description, value] pairs
-            additional = getattr(getattr(context, "chat_options", None), "additional_properties", {}) or {}
-            agui_ctx: Any = additional.get("ag_ui_context")
+    # 1) Define state schema for AG-UI
+    STATE_SCHEMA: Dict[str, object] = {
+        "observed_steps": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Array of completed steps",
+        }
+    }
 
-            if isinstance(agui_ctx, list) and len(agui_ctx) > 0:
-                try:
-                    # Expect shape like: [["The current user's colleagues", [{...}, {...}]], ...]
-                    colleagues_item = next(
-                        (pair[1] for pair in agui_ctx
-                         if isinstance(pair, (list, tuple)) and len(pair) == 2 and pair[0] == "The current user's colleagues"),
-                        None
-                    )
+    # 2) Predictive state mapping: observed_steps <- step_progress.steps
+    PREDICT_STATE_CONFIG: Dict[str, Dict[str, str]] = {
+        "observed_steps": {
+            "tool": "step_progress",
+            "tool_argument": "steps",
+        }
+    }
 
-                    if isinstance(colleagues_item, list) and len(colleagues_item) > 0:
-                        entries = [
-                            f"- {c.get('name')} ({c.get('role')})"
-                            for c in colleagues_item
-                            if isinstance(c, dict) and c.get("name") and c.get("role")
-                        ]
-                        if entries:
-                            system_text = "The user's colleagues are:\n" + "\n".join(entries)
-                            context.messages = [{"role": "system", "content": system_text}, *context.messages]
+    # 3) Tool that the LLM will call with step updates
+    @ai_function(
+        name="step_progress",
+        description="Report current step progress.",
+    )
+    def step_progress(
+        steps: Annotated[list[str], Field(description="Steps completed so far")],
+    ) -> str:
+        return "Progress received."
 
-                except Exception:
-                    # If shape is unexpected, skip injection silently
-                    pass
-
-            await next(context)
-
-    base_agent = ChatAgent(
+    base = ChatAgent(
         name="sample_agent",
-        instructions="You are a helpful assistant.",
+        instructions="You are a task performer. Report progress using step_progress.",
         chat_client=chat_client,
-        middleware=[ContextInjectionMiddleware()],
+        tools=[step_progress],
     )
 
     return AgentFrameworkAgent(
-        agent=base_agent,
+        agent=base,
         name="CopilotKitMicrosoftAgentFrameworkAgent",
-        description="Assistant that consumes app context forwarded from the frontend.",
+        description="Agent with predictive state updates for observed steps.",
+        state_schema=STATE_SCHEMA,
+        predict_state_config=PREDICT_STATE_CONFIG,
         require_confirmation=False,
     )
