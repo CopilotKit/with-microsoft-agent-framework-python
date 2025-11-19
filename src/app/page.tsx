@@ -1,28 +1,33 @@
 "use client";
 
-import { useFrontendTool } from "@copilotkit/react-core";
+import { useHumanInTheLoop } from "@copilotkit/react-core";
 import { CopilotChat } from "@copilotkit/react-ui";
 
 export default function CopilotKitPage() {
-  useFrontendTool({
-    name: "sayHello",
-    description: "Say hello to the user",
+  useHumanInTheLoop({
+    name: "humanApprovedCommand",
+    description: "Ask human for approval to run a command.",
     parameters: [
       {
-        name: "name",
+        name: "command",
         type: "string",
-        description: "The name of the user to say hello to",
+        description: "The command to run",
         required: true,
       },
     ],
-    handler: ({ name }: { name: string }): { currentURLPath: string; userName: string } => {
-      return { currentURLPath: window.location.href, userName: name };
-    },
-    render: ({ args }: { args: { name?: string } }) => {
+    render: ({
+      args,
+      respond,
+    }: {
+      args: { command?: string };
+      respond?: (decision: string) => void;
+    }) => {
+      if (!respond) return <></>;
       return (
         <div>
-          <h1>Hello, {args.name}!</h1>
-          <h1>You&apos;re currently on {window.location.href}</h1>
+          <pre>{args.command}</pre>
+          <button onClick={() => respond("Command is APPROVED")}>Approve</button>
+          <button onClick={() => respond("Command is DENIED")}>Deny</button>
         </div>
       );
     },
