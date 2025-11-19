@@ -1,82 +1,37 @@
-from typing import Annotated, Dict
+from __future__ import annotations
+
+from typing import Annotated
 
 from agent_framework import ChatAgent, ChatClientProtocol, ai_function
 from agent_framework_ag_ui import AgentFrameworkAgent
-from pydantic import BaseModel, Field
-
-
-class SearchItem(BaseModel):
-    query: str
-    done: bool
-
-
-# Define the state schema for AG-UI to validate and forward to the frontend
-STATE_SCHEMA: Dict[str, object] = {
-    "searches": {
-        "type": "array",
-        "items": {
-            "type": "object",
-            "properties": {
-                "query": {"type": "string"},
-                "done": {"type": "boolean"},
-            },
-            "required": ["query", "done"],
-            "additionalProperties": False,
-        },
-        "description": "List of searches and whether each is done.",
-    }
-}
-
-# Configure how the agent updates state. The agent will call the `update_searches`
-# tool with the FULL list of searches to set the current state.
-PREDICT_STATE_CONFIG: Dict[str, Dict[str, str]] = {
-    "searches": {
-        "tool": "update_searches",
-        "tool_argument": "searches",
-    }
-}
+from pydantic import Field
 
 
 @ai_function(
-    name="update_searches",
-    description=(
-        "Replace the entire list of searches with the provided values. "
-        "Always include the full list you want to keep. "
-        "Each search should include: { query: string, done: boolean }."
-    ),
+    name="get_weather",
+    description="Get the weather for a given location.",
 )
-def update_searches(
-    searches: Annotated[list[SearchItem], Field(description=("The complete source of truth for the user's searches. Maintain ordering and include the full list on each call."))],
+def get_weather(
+    location: Annotated[str, Field(description="The location to get weather for")],
 ) -> str:
-    return f"Searches updated. Tracking {len(searches)} item(s)."
+    normalized = location.strip() or "the requested location"
+    return f"The weather for {normalized} is 70 degrees."
 
 
 def create_agent(chat_client: ChatClientProtocol) -> AgentFrameworkAgent:
     """
-    Agent that maintains and streams a list of searches to the UI.
-    The LLM is instructed to call `update_searches` whenever it adds or completes searches.
+    Minimal agent exposing a backend tool that can be rendered in the UI.
     """
     base_agent = ChatAgent(
-        name="search_agent",
-        instructions=(
-            "You help users create and run searches.\n\n"
-            "State sync rules:\n"
-            "- Maintain a list of searches: each item has { query, done }.\n"
-            "- When adding a new search, call `update_searches` with the FULL list, including the new item with done=true.\n"
-            "- All searches in the list should have done=true unless explicitly in progress.\n"
-            "- Never send partial updates—always include the full list on each call.\n"
-        ),
+        name="sample_agent",
+        instructions="You are a helpful assistant.",
         chat_client=chat_client,
-        tools=[update_searches],
+        tools=[get_weather],
     )
 
     return AgentFrameworkAgent(
         agent=base_agent,
         name="CopilotKitMicrosoftAgentFrameworkAgent",
-        description="Maintains a list of searches and streams state to the UI.",
-        state_schema=STATE_SCHEMA,
-        predict_state_config=PREDICT_STATE_CONFIG,
+        description="Assistant with a get_weather backend tool.",
         require_confirmation=False,
     )
-
-
