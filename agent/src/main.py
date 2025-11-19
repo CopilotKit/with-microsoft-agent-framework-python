@@ -3,11 +3,11 @@ from __future__ import annotations
 import os
 
 import uvicorn
-from agent_framework._clients import ChatClientProtocol
+from agent_framework import ChatClientProtocol
 from azure.identity import DefaultAzureCredential
 from agent_framework.azure import AzureOpenAIChatClient
 from agent_framework.openai import OpenAIChatClient
-from agent_framework_ag_ui import add_agent_framework_fastapi_endpoint
+from agent_framework.ag_ui import add_agent_framework_fastapi_endpoint
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware

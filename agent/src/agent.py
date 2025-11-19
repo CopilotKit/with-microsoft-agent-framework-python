@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from agent_framework import ChatAgent, ChatClientProtocol, ChatMiddleware, ChatContext
-from agent_framework_ag_ui import AgentFrameworkAgent
+from agent_framework.ag_ui import AgentFrameworkAgent
 
 
 def create_agent(chat_client: ChatClientProtocol) -> AgentFrameworkAgent:
